@@ -1,4 +1,4 @@
-import prisma from "../config/prismaClient.js";
+import prisma from "../utils/prismaClient.js";
 
 // GET /api/products?search=&category=&priceMin=&priceMax=&rating=
 export const getAllProducts = async (req, res) => {
@@ -62,7 +62,11 @@ export const getProductById = async (req, res) => {
 // POST /api/products (Admin only)
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, price, stock, categoryId, images } = req.body;
+    const { name, description, price, stock, categoryId, images = [] } = req.body;
+
+    // Optional: Check if category exists
+    const categoryExists = await prisma.category.findUnique({ where: { id: categoryId } });
+    if (!categoryExists) return res.status(400).json({ message: "Invalid categoryId" });
 
     const newProduct = await prisma.product.create({
       data: {
@@ -85,7 +89,20 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const data = req.body;
+    const { name, description, price, stock, categoryId, images } = req.body;
+
+    const data = {};
+    if (name) data.name = name;
+    if (description) data.description = description;
+    if (price) data.price = parseFloat(price);
+    if (stock) data.stock = parseInt(stock);
+    if (categoryId) {
+      // Optional: Validate categoryId
+      const categoryExists = await prisma.category.findUnique({ where: { id: categoryId } });
+      if (!categoryExists) return res.status(400).json({ message: "Invalid categoryId" });
+      data.categoryId = categoryId;
+    }
+    if (images) data.images = images;
 
     const updatedProduct = await prisma.product.update({
       where: { id },

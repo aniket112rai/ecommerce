@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
 export const createToken = (user) => {
-  return jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ userId: user.id, role: user.role  }, JWT_SECRET, { expiresIn: "7d" });
 };
 
 export const sendToken = (res, user) => {

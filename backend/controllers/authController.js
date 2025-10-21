@@ -19,7 +19,11 @@ export const register = async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { name, email, password: hashedPassword },
+    data: { name, 
+      email, 
+      password: hashedPassword , 
+      role:role === "admin" ? "admin" : "user",
+      provider: "local"},
   });
   sendToken(res, user);
 };
@@ -53,6 +57,7 @@ export const googleLogin = async (req, res) => {
         email: payload.email,
         provider: "google",
         providerId: payload.sub,
+        role: role === "admin" ? "admin" : "user"
       },
     });
   }
