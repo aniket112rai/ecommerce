@@ -8,7 +8,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // REGISTER
 export const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password,role } = req.body;
   const existing = await prisma.user.findUnique({
     where: { email },
   });
@@ -22,7 +22,7 @@ export const register = async (req, res) => {
     data: { name, 
       email, 
       password: hashedPassword , 
-      role:role === "admin" ? "admin" : "user",
+      role: role || "user",
       provider: "local"},
   });
   sendToken(res, user);
@@ -42,7 +42,7 @@ export const login = async (req, res) => {
 
 // GOOGLE LOGIN
 export const googleLogin = async (req, res) => {
-  const { tokenId } = req.body;
+  const { tokenId, role } = req.body; // read role from frontend
   const ticket = await client.verifyIdToken({
     idToken: tokenId,
     audience: process.env.GOOGLE_CLIENT_ID,
@@ -57,7 +57,7 @@ export const googleLogin = async (req, res) => {
         email: payload.email,
         provider: "google",
         providerId: payload.sub,
-        role: role === "admin" ? "admin" : "user"
+        role: role === "admin" ? "admin" : "user", // set correctly
       },
     });
   }
@@ -68,6 +68,7 @@ export const googleLogin = async (req, res) => {
 // GET CURRENT USER
 export const getMe = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.userId } });
+  console.log("user is there in db")
   res.json(user);
 };
 

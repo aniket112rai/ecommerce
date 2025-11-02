@@ -10,7 +10,7 @@ import orderRoutes from "./routes/orderRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js"; 
 import paymentRoutes from "./routes/paymentRoutes.js"; 
-
+import cors from 'cors';
 
 dotenv.config();
 const app = express();
