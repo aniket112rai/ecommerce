@@ -11,11 +11,11 @@ const CategoryForm = ({ fetchCategories, editingCategory, setEditingCategory }) 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
+    
     if (editingCategory) {
-      await axios.put(`/api/categories/${editingCategory.id}`, { name }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`http://localhost:3000/api/categories/${editingCategory.id}`, { name }, {withCredentials: true,});
     } else {
-      await axios.post("/api/categories", { name }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.post("http://localhost:3000/api/categories", { name }, { withCredentials: true, });
     }
     setName("");
     setEditingCategory(null);

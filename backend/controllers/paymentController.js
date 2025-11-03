@@ -1,4 +1,4 @@
-import prisma from "../utils/prismaClient.js";
+import {prisma} from "../utils/prismaClient.js";
 
 // POST /api/payments
 export const processPayment = async (req, res) => {

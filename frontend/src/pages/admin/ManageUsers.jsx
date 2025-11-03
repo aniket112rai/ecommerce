@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import UserRow from "../../components/admin/UserRow";
 import { useNavigate } from "react-router-dom";
+import AdminNav from "../../components/admin/AdminNav";
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
@@ -10,17 +11,22 @@ const ManageUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const { data } = await axios.get("/api/users", {
-        headers: { Authorization: `Bearer ${token}` },
+      const { data } = await axios.get("http://localhost:3000/api/users", {
+        withCredentials: true,
       });
-      setUsers(data);
+  
+      console.log("Fetched users:", data);
+  
+      // handle different response shapes safely
+      const usersArray = data.users || data.data || data; 
+      setUsers(Array.isArray(usersArray) ? usersArray : []);
     } catch (err) {
-      console.error(err);
-      navigate("/login"); // redirect if not authorized
+      console.error("Error fetching users:", err);
+      navigate("/login");
     }
   };
-
+  
+  
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -28,6 +34,7 @@ const ManageUsers = () => {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Manage Users</h1>
+      <AdminNav/>
       {users.length === 0 ? (
         <p className="text-gray-500">No users found.</p>
       ) : (

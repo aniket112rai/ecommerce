@@ -1,4 +1,4 @@
-import prisma from "../utils/prismaClient.js";
+import {prisma} from "../utils/prismaClient.js";
 
 // GET /api/orders - user's orders
 export const getUserOrders = async (req, res) => {

@@ -1,4 +1,4 @@
-import prisma from "../utils/prismaClient.js";
+import {prisma} from "../utils/prismaClient.js";
 
 // GET /api/products?search=&category=&priceMin=&priceMax=&rating=
 export const getAllProducts = async (req, res) => {
@@ -62,12 +62,16 @@ export const getProductById = async (req, res) => {
 // POST /api/products (Admin only)
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, price, stock, categoryId, images = [] } = req.body;
+    
+    const { name, description, price, stock, categoryId, images } = req.body;
 
     // Optional: Check if category exists
+    console.log(req.body)
+    console.log("categoryId:", categoryId)
     const categoryExists = await prisma.category.findUnique({ where: { id: categoryId } });
+    console.log("jfhbnsdczjkxc,njksdlzkncl")
     if (!categoryExists) return res.status(400).json({ message: "Invalid categoryId" });
-
+    console.log("data is entered")
     const newProduct = await prisma.product.create({
       data: {
         name,
@@ -78,7 +82,7 @@ export const createProduct = async (req, res) => {
         images,
       },
     });
-
+    console.log("product created")
     res.status(201).json(newProduct);
   } catch (err) {
     res.status(500).json({ message: "Error creating product", error: err.message });

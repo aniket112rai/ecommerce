@@ -1,19 +1,29 @@
 // frontend/src/pages/admin/ManageOrders.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import AdminNav from "../../components/admin/AdminNav";
 
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
 
   const fetchOrders = async () => {
-    const token = localStorage.getItem("token");
-    const { data } = await axios.get("/api/orders", { headers: { Authorization: `Bearer ${token}` } });
-    setOrders(data);
+    try {
+      
+      const { data } = await axios.get("/api/orders", {
+        withCredentials: true,
+      });
+      console.log("Fetched orders:", data); // check what backend sends
+      setOrders(data.orders || data.data || []); // fix
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      setOrders([]); // prevents crash if error
+    }
   };
+  
 
   const handleStatusChange = async (orderId, status) => {
-    const token = localStorage.getItem("token");
-    await axios.put(`/api/orders/${orderId}/status`, { status }, { headers: { Authorization: `Bearer ${token}` } });
+    
+    await axios.put(`/api/orders/${orderId}/status`, { status }, {withCredentials: true, });
     fetchOrders();
   };
 
@@ -22,6 +32,7 @@ const ManageOrders = () => {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Manage Orders</h1>
+      <AdminNav/>
       <table className="w-full border">
         <thead>
           <tr className="bg-gray-100">
