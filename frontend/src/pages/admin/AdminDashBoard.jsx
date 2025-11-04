@@ -20,10 +20,11 @@ const AdminDashboard = () => {
         ]);
 
         setStats({
-          users: users.data.length,
+          users: users.data.users.length,
           orders: orders.data.length,
           products: products.data.length,
         });
+        
       } catch (err) {
         console.error("Error fetching admin stats:", err);
         navigate("/login"); // not authenticated or not admin
