@@ -44,6 +44,18 @@ const Home = () => {
       <div className="absolute top-4 right-6 flex gap-3">
         {user ? (
           <>
+            <Link
+              to="/orders"
+              className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+              My Orders
+            </Link>
+            <Link
+              to="/addresses"
+              className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 shadow-md font-medium"
+            >
+              Manage Addresses
+            </Link>
+
           <Link
               to="/cart"
               className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 shadow-md font-medium"

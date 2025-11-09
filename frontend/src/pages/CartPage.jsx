@@ -3,6 +3,7 @@ import React from "react";
 import { useCart } from "../context/CartContext";
 import CartItem from "../components/CartItem";
 import { Link } from "react-router-dom";
+
 const CartPage = () => {
   const { cart, loading } = useCart();
 
@@ -39,15 +40,17 @@ const CartPage = () => {
         <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-sm">
           <h2 className="text-xl font-semibold mb-2">Total</h2>
           <p className="text-2xl font-bold text-blue-600">
-            ${totalPrice.toFixed(2)}
+            ₹{totalPrice.toFixed(2)}
           </p>
-          <button className="w-full mt-4 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition">
+          <Link
+            to="/checkout"
+            className="block w-full mt-4 bg-green-500 text-white py-2 text-center rounded-lg hover:bg-green-600 transition"
+          >
             Proceed to Checkout
-          </button>
-          
+          </Link>
         </div>
-        
       </div>
+
       <div className="text-center mt-10">
         <Link
           to="/"

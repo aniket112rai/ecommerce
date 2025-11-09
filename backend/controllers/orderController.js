@@ -1,4 +1,5 @@
-import {prisma} from "../utils/prismaClient.js";
+// backend/controllers/orderController.js
+import { prisma } from "../utils/prismaClient.js";
 
 // GET /api/orders - user's orders
 export const getUserOrders = async (req, res) => {
@@ -10,6 +11,7 @@ export const getUserOrders = async (req, res) => {
         address: true,
         payment: true,
       },
+      orderBy: { createdAt: "desc" },
     });
     res.json(orders);
   } catch (err) {
@@ -45,38 +47,71 @@ export const getOrderById = async (req, res) => {
 // POST /api/orders - create order
 export const createOrder = async (req, res) => {
   try {
-    const { items, addressId, paymentMethod } = req.body;
+    // Expect body: { items: [{ productId, quantity }], addressId }
+    const { items = [], addressId } = req.body;
+    const userId = req.userId; // ← from authMiddleware
 
-    // Calculate total
-    let total = 0;
-    for (const item of items) {
-      const product = await prisma.product.findUnique({ where: { id: item.productId } });
-      if (!product) return res.status(400).json({ message: "Invalid product" });
-      total += product.price * item.quantity;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "No items provided" });
     }
 
-    // Create order
-    const order = await prisma.order.create({
-      data: {
-        userId: req.userId,
-        total,
-        addressId,
-        items: {
-          create: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: parseFloat(item.price || 0),
-          })),
-        },
-      },
-      include: { items: true },
+    // Fetch product details for the given productIds
+    const productIds = [...new Set(items.map((it) => it.productId))];
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, price: true, name: true },
     });
 
-    // TODO: integrate payment processing here
+    // Build a map for quick lookup
+    const prodMap = new Map(products.map((p) => [p.id, p]));
 
+    // Validate all product ids exist and build items with price
+    let total = 0;
+    const itemsToCreate = items.map((it) => {
+      const product = prodMap.get(it.productId);
+      if (!product) {
+        throw new Error(`Product not found: ${it.productId}`);
+      }
+      const qty = Number(it.quantity) || 1;
+      const price = Number(product.price) || 0;
+      total += price * qty;
+      return {
+        productId: it.productId,
+        quantity: qty,
+        price,
+      };
+    });
+
+    // Create order (do NOT create payment here — payment endpoint will handle it)
+    const order = await prisma.order.create({
+      data: {
+        user: { connect: { id: userId } }, // ✅ FIXED — connect relation properly
+        total,
+        status: "pending",
+        address: addressId ? { connect: { id: addressId } } : undefined,
+        items: {
+          create: itemsToCreate,
+        },
+      },
+      include: {
+        items: { include: { product: true } },
+        address: true,
+        payment: true,
+      },
+    });
+    
+
+    // return order to frontend
     res.status(201).json(order);
   } catch (err) {
-    res.status(500).json({ message: "Error creating order", error: err.message });
+    console.error("Order creation failed:", err);
+    // If the error is a product-not-found error we threw, return 400
+    if (err.message && err.message.startsWith("Product not found")) {
+      return res.status(400).json({ message: err.message });
+    }
+    res.status(500).json({ message: "Order creation failed", error: err.message });
   }
 };
 
@@ -89,7 +124,7 @@ export const updateOrderStatus = async (req, res) => {
     const order = await prisma.order.update({
       where: { id },
       data: { status },
-      include: { items: true },
+      include: { items: { include: { product: true } }, address: true, payment: true },
     });
 
     res.json(order);
