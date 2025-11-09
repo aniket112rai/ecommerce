@@ -47,7 +47,7 @@ const ProductCard = ({ product }) => {
           {product.name}
         </h2>
         <p className="text-gray-500 mb-2">${product.price.toFixed(2)}</p>
-        <p className="text-yellow-500 mb-4">⭐ {product.rating || "N/A"}</p>
+        <p className="text-yellow-500 mb-4">⭐ {product.rating ? product.rating.toFixed(1) : "0"}</p>
         <Link
           to={`/products/${product.id}`}
           className="mt-auto bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 text-center font-medium"

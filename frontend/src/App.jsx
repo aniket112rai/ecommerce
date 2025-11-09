@@ -10,6 +10,8 @@ import ManageOrders from "./pages/admin/ManageOrders";
 import ManageUsers from "./pages/admin/ManageUsers";
 import { AdminRoute } from "./utils/AdminRoute";
 import WishlistPage from "./pages/WishlistPage";
+import ProductDetails from "./pages/ProductDetails";
+import CartPage from "./pages/CartPage";
 function App() {
   return (
     <BrowserRouter>
@@ -18,6 +20,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Signup />} />
         <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/products/:id" element={<ProductDetails />} />
+        <Route path="/cart" element={<CartPage />} />
 
         {/* Admin Routes */}
         <Route
