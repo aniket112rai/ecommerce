@@ -18,6 +18,30 @@ export const getUserOrders = async (req, res) => {
     res.status(500).json({ message: "Error fetching orders", error: err.message });
   }
 };
+ // backend/controllers/orderController.js
+
+// GET /api/admin/orders - all orders (Admin only)
+export const getAllOrders = async (req, res) => {
+  try {
+    if (req.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const orders = await prisma.order.findMany({
+      include: {
+        items: { include: { product: true } },
+        address: true,
+        payment: true,
+        user: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    console.log(orders)
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching all orders", error: err.message });
+  }
+};
 
 // GET /api/orders/:id
 export const getOrderById = async (req, res) => {
@@ -47,50 +71,47 @@ export const getOrderById = async (req, res) => {
 // POST /api/orders - create order
 export const createOrder = async (req, res) => {
   try {
-    // Expect body: { items: [{ productId, quantity }], addressId }
-    const { items = [], addressId } = req.body;
-    const userId = req.userId; // ← from authMiddleware
+    const { items, addressId, paymentMethod } = req.body;
+    const userId = req.userId;
 
-    if (!userId) return res.status(401).json({ message: "Not authenticated" });
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: "No items provided" });
+    if (!items?.length || !addressId) {
+      return res.status(400).json({ message: "Missing order details" });
     }
 
-    // Fetch product details for the given productIds
-    const productIds = [...new Set(items.map((it) => it.productId))];
+    // ✅ Fetch product prices directly from DB
+    const productIds = items.map((i) => i.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, price: true, name: true },
+      select: { id: true, price: true },
     });
 
-    // Build a map for quick lookup
-    const prodMap = new Map(products.map((p) => [p.id, p]));
-
-    // Validate all product ids exist and build items with price
-    let total = 0;
-    const itemsToCreate = items.map((it) => {
-      const product = prodMap.get(it.productId);
-      if (!product) {
-        throw new Error(`Product not found: ${it.productId}`);
-      }
-      const qty = Number(it.quantity) || 1;
-      const price = Number(product.price) || 0;
-      total += price * qty;
+    // ✅ Build items array with correct prices
+    const itemsToCreate = items.map((item) => {
+      const product = products.find((p) => p.id === item.productId);
       return {
-        productId: it.productId,
-        quantity: qty,
-        price,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: product?.price || 0,
       };
     });
 
-    // Create order (do NOT create payment here — payment endpoint will handle it)
+    // ✅ Correct total calculation
+    const total = itemsToCreate.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+    // ✅ Create order with confirmed payment (since no Razorpay yet)
     const order = await prisma.order.create({
       data: {
-        user: { connect: { id: userId } }, // ✅ FIXED — connect relation properly
+        user: { connect: { id: userId } },
         total,
-        status: "pending",
-        address: addressId ? { connect: { id: addressId } } : undefined,
+        status: "Confirmed",
+        address: { connect: { id: addressId } },
+        payment: {
+          create: {
+            provider: paymentMethod || "COD",
+            status: "Paid",
+            amount: total,
+          },
+        },
         items: {
           create: itemsToCreate,
         },
@@ -101,16 +122,10 @@ export const createOrder = async (req, res) => {
         payment: true,
       },
     });
-    
 
-    // return order to frontend
     res.status(201).json(order);
   } catch (err) {
     console.error("Order creation failed:", err);
-    // If the error is a product-not-found error we threw, return 400
-    if (err.message && err.message.startsWith("Product not found")) {
-      return res.status(400).json({ message: err.message });
-    }
     res.status(500).json({ message: "Order creation failed", error: err.message });
   }
 };

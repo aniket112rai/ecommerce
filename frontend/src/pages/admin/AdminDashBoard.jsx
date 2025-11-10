@@ -15,7 +15,7 @@ const AdminDashboard = () => {
         // Backend will validate the admin via cookie-based auth
         const [users, orders, products] = await Promise.all([
           axios.get("http://localhost:3000/api/users", { withCredentials: true }),
-          axios.get("http://localhost:3000/api/orders", { withCredentials: true }),
+          axios.get("http://localhost:3000/api/orders/all", { withCredentials: true }),
           axios.get("http://localhost:3000/api/products", { withCredentials: true }),
         ]);
 
@@ -35,9 +35,11 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   return (
+    
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
         <AdminNav/>
+        {console.log(stats.orders)}
       {/* Admin Route Buttons
       <div className="flex flex-wrap gap-4 my-6">
         <button
@@ -70,6 +72,7 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard title="Users" value={stats.users} />
         <StatsCard title="Orders" value={stats.orders} />
+        {console.log(stats.orders)}
         <StatsCard title="Products" value={stats.products} />
       </div>
     </div>

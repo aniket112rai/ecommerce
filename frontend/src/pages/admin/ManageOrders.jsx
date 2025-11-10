@@ -9,11 +9,11 @@ const ManageOrders = () => {
   const fetchOrders = async () => {
     try {
       
-      const { data } = await axios.get("/api/orders", {
+      const { data } = await axios.get("http://localhost:3000/api/orders/all", {
         withCredentials: true,
       });
       console.log("Fetched orders:", data); // check what backend sends
-      setOrders(data.orders || data.data || []); // fix
+      setOrders(data); // fix
     } catch (err) {
       console.error("Error fetching orders:", err);
       setOrders([]); // prevents crash if error
@@ -23,7 +23,7 @@ const ManageOrders = () => {
 
   const handleStatusChange = async (orderId, status) => {
     
-    await axios.put(`/api/orders/${orderId}/status`, { status }, {withCredentials: true, });
+    await axios.put(`http://localhost:3000/api/orders/${orderId}/status`, { status }, {withCredentials: true, });
     fetchOrders();
   };
 

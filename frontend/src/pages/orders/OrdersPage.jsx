@@ -41,6 +41,7 @@ const OrdersPage = () => {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">My Orders</h1>
+      
       <div className="grid grid-cols-1 gap-4">
         {orders.map((order) => (
           <div
@@ -61,6 +62,14 @@ const OrdersPage = () => {
           </div>
         ))}
       </div>
+        <div className="text-center mt-10">
+                <Link
+                    to="/"
+                    className="inline-block bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 transition"
+                >
+                    ← Back to Home
+                </Link>
+        </div>
     </div>
   );
 };
