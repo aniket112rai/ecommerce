@@ -40,30 +40,6 @@ export const login = async (req, res) => {
   sendToken(res, user);
 };
 
-// GOOGLE LOGIN
-export const googleLogin = async (req, res) => {
-  const { tokenId, role } = req.body; // read role from frontend
-  const ticket = await client.verifyIdToken({
-    idToken: tokenId,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
-  const payload = ticket.getPayload();
-
-  let user = await prisma.user.findUnique({ where: { email: payload.email } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        name: payload.name,
-        email: payload.email,
-        provider: "google",
-        providerId: payload.sub,
-        role: role === "admin" ? "admin" : "user", // set correctly
-      },
-    });
-  }
-
-  sendToken(res, user);
-};
 
 // GET CURRENT USER
 export const getMe = async (req, res) => {
