@@ -1,3 +1,4 @@
+// frontend/src/pages/AddressPage.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -94,148 +95,193 @@ const AddressPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-5 flex flex-col items-center">
-      <div className="w-full max-w-4xl bg-white shadow-lg rounded-2xl p-6">
-        <h1 className="text-2xl font-bold mb-5 text-gray-800">Manage Addresses</h1>
-
-        {/* Address Form */}
-        <form onSubmit={handleSubmit} className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              name="line1"
-              value={form.line1}
-              onChange={handleChange}
-              placeholder="Address Line 1"
-              required
-              className="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              type="text"
-              name="line2"
-              value={form.line2}
-              onChange={handleChange}
-              placeholder="Address Line 2"
-              className="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              type="text"
-              name="city"
-              value={form.city}
-              onChange={handleChange}
-              placeholder="City"
-              required
-              className="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              type="text"
-              name="state"
-              value={form.state}
-              onChange={handleChange}
-              placeholder="State"
-              required
-              className="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              type="text"
-              name="postal"
-              value={form.postal}
-              onChange={handleChange}
-              placeholder="Postal Code"
-              required
-              className="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              type="text"
-              name="country"
-              value={form.country}
-              onChange={handleChange}
-              placeholder="Country"
-              required
-              className="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-400"
-            />
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900">Manage Addresses</h1>
+            <p className="text-gray-500 mt-1">Add or update your shipping locations.</p>
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className={`mt-5 px-6 py-2 rounded-lg text-white ${
-              editing ? "bg-green-500 hover:bg-green-600" : "bg-blue-500 hover:bg-blue-600"
-            } transition`}
-          >
-            {loading
-              ? "Saving..."
-              : editing
-              ? "Update Address"
-              : "Add Address"}
-          </button>
-          {editing && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditing(false);
-                setForm({
-                  id: null,
-                  line1: "",
-                  line2: "",
-                  city: "",
-                  state: "",
-                  postal: "",
-                  country: "",
-                });
-              }}
-              className="ml-3 px-6 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg text-gray-800 transition"
-            >
-              Cancel
-            </button>
-          )}
-        </form>
-
-        <div className="text-center mt-10">
-            <Link
+          <Link
             to="/"
-            className="inline-block bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 transition"
-            >
-            ← Back to Home
-            </Link>
+            className="mt-4 md:mt-0 text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2 transition"
+          >
+            <span>←</span> Back to Home
+          </Link>
         </div>
 
-        {/* Address List */}
-        <h2 className="text-xl font-semibold mb-3 text-gray-800">Your Addresses</h2>
-        {addresses.length === 0 ? (
-          <p className="text-gray-500">No addresses added yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {addresses.map((a) => (
-              <div
-                key={a.id}
-                className="border rounded-xl p-4 bg-gray-50 shadow-sm flex flex-col justify-between"
-              >
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Left Column: Form */}
+          <div className="lg:col-span-1">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                {editing ? "✏️ Edit Address" : "➕ Add New Address"}
+              </h2>
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <p className="font-medium text-gray-700">{a.line1}</p>
-                  {a.line2 && <p className="text-gray-600">{a.line2}</p>}
-                  <p className="text-gray-600">
-                    {a.city}, {a.state} - {a.postal}
-                  </p>
-                  <p className="text-gray-600">{a.country}</p>
+                  <input
+                    type="text"
+                    name="line1"
+                    value={form.line1}
+                    onChange={handleChange}
+                    placeholder="Address Line 1"
+                    required
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+                  />
                 </div>
-                <div className="flex gap-3 mt-3">
-                  <button
-                    onClick={() => handleEdit(a)}
-                    className="text-blue-500 hover:underline text-sm"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(a.id)}
-                    className="text-red-500 hover:underline text-sm"
-                  >
-                    Delete
-                  </button>
+                <div>
+                  <input
+                    type="text"
+                    name="line2"
+                    value={form.line2}
+                    onChange={handleChange}
+                    placeholder="Address Line 2 (Optional)"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+                  />
                 </div>
-              </div>
-            ))}
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    name="city"
+                    value={form.city}
+                    onChange={handleChange}
+                    placeholder="City"
+                    required
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+                  />
+                   <input
+                    type="text"
+                    name="state"
+                    value={form.state}
+                    onChange={handleChange}
+                    placeholder="State"
+                    required
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    name="postal"
+                    value={form.postal}
+                    onChange={handleChange}
+                    placeholder="ZIP Code"
+                    required
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+                  />
+                  <input
+                    type="text"
+                    name="country"
+                    value={form.country}
+                    onChange={handleChange}
+                    placeholder="Country"
+                    required
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+                  />
+                </div>
+
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`flex-1 py-3 px-4 rounded-xl font-semibold text-white shadow-md transition-all ${
+                      editing 
+                        ? "bg-indigo-600 hover:bg-indigo-700" 
+                        : "bg-gray-900 hover:bg-gray-800"
+                    } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+                  >
+                    {loading
+                      ? "Saving..."
+                      : editing
+                      ? "Update"
+                      : "Save Address"}
+                  </button>
+                  
+                  {editing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(false);
+                        setForm({
+                          id: null,
+                          line1: "",
+                          line2: "",
+                          city: "",
+                          state: "",
+                          postal: "",
+                          country: "",
+                        });
+                      }}
+                      className="px-4 py-3 rounded-xl bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
           </div>
-        )}
+
+          {/* Right Column: Address List */}
+          <div className="lg:col-span-2">
+             <h2 className="text-xl font-bold text-gray-800 mb-5 px-1">Saved Locations</h2>
+            
+            {addresses.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-2xl border border-gray-100 border-dashed">
+                 <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">📍</span>
+                 </div>
+                <p className="text-gray-500 font-medium">No addresses saved yet.</p>
+                <p className="text-sm text-gray-400">Fill out the form to add one.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {addresses.map((a) => (
+                  <div
+                    key={a.id}
+                    className="relative bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <p className="text-gray-900 font-bold text-lg leading-tight mb-1">{a.line1}</p>
+                      {a.line2 && <p className="text-gray-500 text-sm mb-1">{a.line2}</p>}
+                      <p className="text-gray-600 text-sm">
+                        {a.city}, {a.state} <span className="text-gray-300 mx-1">|</span> {a.postal}
+                      </p>
+                      <p className="text-gray-400 text-xs uppercase font-semibold tracking-wider mt-2">{a.country}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-4 border-t border-gray-50">
+                      <button
+                        onClick={() => handleEdit(a)}
+                        className="flex-1 flex items-center justify-center gap-2 text-sm font-medium text-indigo-600 bg-indigo-50 py-2 rounded-lg hover:bg-indigo-100 transition"
+                      >
+                         <span>✏️</span> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(a.id)}
+                        className="flex-1 flex items-center justify-center gap-2 text-sm font-medium text-red-600 bg-red-50 py-2 rounded-lg hover:bg-red-100 transition"
+                      >
+                         <span>🗑️</span> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
