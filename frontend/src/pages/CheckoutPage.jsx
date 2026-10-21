@@ -8,6 +8,9 @@ const CheckoutPage = () => {
   const [selectedAddress, setSelectedAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [cartItems, setCartItems] = useState([]);
+  const [reservation, setReservation] = useState(null);
+  const [reservationError, setReservationError] = useState("");
+  const [remainingSeconds, setRemainingSeconds] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,15 +30,29 @@ const CheckoutPage = () => {
         const res = await axios.get("http://localhost:3000/api/cart", {
           withCredentials: true,
         });
-        setCartItems(res.data.items || []);
+        const items = res.data.items || [];
+        setCartItems(items);
+        if (items.length) {
+          const reserved = await axios.post("http://localhost:3000/api/orders/reserve", {}, { withCredentials: true });
+          setReservation(reserved.data);
+        }
       } catch (err) {
         console.error("Error fetching cart:", err);
+        setReservationError(err.response?.data?.error || err.response?.data?.message || "Unable to reserve stock. Please review your cart.");
       }
     };
 
     fetchAddresses();
     fetchCart();
   }, []);
+
+  useEffect(() => {
+    if (!reservation?.expiresAt) return undefined;
+    const tick = () => setRemainingSeconds(Math.max(0, Math.ceil((new Date(reservation.expiresAt).getTime() - Date.now()) / 1000)));
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [reservation]);
 
   const handleProceedToPayment = () => {
     if (!selectedAddress) {
@@ -49,11 +66,18 @@ const CheckoutPage = () => {
       return;
     }
 
+    if (!reservation || remainingSeconds === 0) {
+      alert(reservationError || "Stock could not be reserved. Please refresh checkout and try again.");
+      return;
+    }
+
     navigate("/payment", {
       state: {
         cartItems,
         selectedAddress,
         paymentMethod,
+        reservationId: reservation.reservationId,
+        reservationExpiresAt: reservation.expiresAt,
       },
     });
   };
@@ -211,6 +235,13 @@ const CheckoutPage = () => {
                 <p className="text-gray-500">Your cart is empty.</p>
               ) : (
                 <>
+                  {reservationError ? (
+                    <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{reservationError}</p>
+                  ) : reservation && remainingSeconds !== null ? (
+                    <p className="mb-4 rounded-lg bg-amber-50 p-3 text-center text-sm font-semibold text-amber-800" role="timer">
+                      {remainingSeconds > 0 ? `Stock reserved for ${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, "0")}` : "Reservation expired. Refresh checkout to reserve again."}
+                    </p>
+                  ) : <p className="mb-4 text-sm text-gray-500">Reserving stock…</p>}
                   <div className="max-h-64 overflow-y-auto pr-2 space-y-3 mb-4 custom-scrollbar">
                     {cartItems.map((item) => (
                       <div key={item.id} className="flex justify-between items-start text-sm">
@@ -245,7 +276,7 @@ const CheckoutPage = () => {
                     
                     <button
                         onClick={handleProceedToPayment}
-                        disabled={cartItems.length === 0}
+                        disabled={cartItems.length === 0 || !reservation || remainingSeconds === 0 || Boolean(reservationError)}
                         className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition shadow-lg shadow-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Place Order

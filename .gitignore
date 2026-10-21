@@ -1,0 +1,21 @@
+# Dependencies and build output
+**/node_modules/
+**/dist/
+**/dist-ssr/
+
+# Secrets and local environment
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python virtual environments and generated data
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+support-rag/chroma_db/
+
+# Local editor/OS files
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

@@ -20,7 +20,14 @@ JWT_SECRET="your_secret_key"
 GOOGLE_CLIENT_ID="optional_google_client_id"
 RAZORPAY_API_KEY="your_razorpay_key_id"
 RAZORPAY_SECRET="your_razorpay_key_secret"
+RAZORPAY_WEBHOOK_SECRET="a_separate_secret_you_set_for_the_dashboard_webhook"
 ```
+
+### Razorpay webhooks
+
+Run the backend database migration with `npx prisma migrate deploy`, then expose the local Express server on port 3000 through an HTTPS tunnel (for example, a temporary tunnel URL). In Razorpay Test Mode, open **Account & Settings → Webhooks → Add New Webhook** and set the URL to `https://<your-tunnel-host>/api/payments/webhook`. Subscribe to `payment.captured` and `payment.failed`. Set a strong webhook secret in the Dashboard and copy that same value to `RAZORPAY_WEBHOOK_SECRET` in `backend/.env`; it is separate from the Razorpay API key secret. Restart the backend after changing it. Keep the tunnel URL stable while testing, since Razorpay must reach it over public HTTPS.
+
+After checkout, the backend verifies the Razorpay signature and fetches the payment from Razorpay before confirming the order, so customers get an immediate result. The webhook remains a backup for delayed delivery or a browser/server interruption. Both paths share idempotent payment/order updates, and webhook deliveries are deduplicated using `x-razorpay-event-id`.
 
 Start the Express API in Terminal 1 from the project root:
 

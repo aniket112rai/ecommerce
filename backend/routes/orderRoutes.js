@@ -5,7 +5,8 @@ import {
   createOrder,
   updateOrderStatus,
   getAllOrders,
-  cancelOrder
+  cancelOrder,
+  reserveCheckoutInventory,
 } from "../controllers/orderController.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 
@@ -22,6 +23,7 @@ router.get("/:id", authMiddleware(), getOrderById);
 
 // Place a new order
 router.post("/", authMiddleware(), createOrder);
+router.post("/reserve", authMiddleware(), reserveCheckoutInventory);
 
 // Cancel own order
 router.put("/:id/cancel", authMiddleware(), cancelOrder);

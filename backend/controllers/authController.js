@@ -45,7 +45,7 @@ export const login = async (req, res) => {
 // GET CURRENT USER
 export const getMe = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.userId } });
-  console.log("user is there in db")
+  
   res.json(user);
 };
 

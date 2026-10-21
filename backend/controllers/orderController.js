@@ -1,6 +1,7 @@
 // backend/controllers/orderController.js
 import { prisma } from "../utils/prismaClient.js";
 import { refundRazorpayPayment } from "../utils/razorpay.js";
+import { releaseExpiredReservations, reserveInventory } from "../utils/inventoryReservations.js";
 
 const paidStatuses = ["paid", "completed"];
 
@@ -216,6 +217,7 @@ export const getOrderById = async (req, res) => {
 // POST /api/orders - create order
 export const createOrder = async (req, res) => {
   try {
+    await releaseExpiredReservations();
     const { items, addressId, paymentMethod } = req.body;
     const userId = req.userId;
     const selectedPaymentMethod = paymentMethod || "COD";
@@ -235,6 +237,38 @@ export const createOrder = async (req, res) => {
     });
     if (!address) {
       return res.status(400).json({ message: "Invalid address selected" });
+    }
+
+    if (req.body.reservationId) {
+      const confirmed = await prisma.$transaction(async (tx) => {
+        const reservation = await tx.stockReservation.findFirst({
+          where: { id: req.body.reservationId, userId },
+          include: { items: { include: { product: true } } },
+        });
+        if (!reservation || reservation.expiresAt <= new Date() || reservation.releasedAt || reservation.finalizedAt) {
+          const error = new Error("Your stock reservation expired. Please return to checkout.");
+          error.statusCode = 409;
+          throw error;
+        }
+        const claimed = await tx.stockReservation.updateMany({
+          where: { id: reservation.id, expiresAt: { gt: new Date() }, releasedAt: null, finalizedAt: null },
+          data: { finalizedAt: new Date() },
+        });
+        if (claimed.count !== 1) throw Object.assign(new Error("Your stock reservation expired."), { statusCode: 409 });
+        const total = reservation.items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+        const created = await tx.order.create({
+          data: {
+            userId, addressId, reservationId: reservation.id, total, status: "Confirmed",
+            payment: { create: { provider: paymentMethod || "COD", status: "COD Pending", amount: total } },
+            items: { create: reservation.items.map(({ productId, quantity, product }) => ({ productId, quantity, price: product.price })) },
+          },
+          include: { items: { include: { product: true } }, address: true, payment: true },
+        });
+        return created;
+      });
+      const cart = await prisma.cart.findUnique({ where: { userId } });
+      if (cart) await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+      return res.status(201).json(confirmed);
     }
 
     const productIds = items.map((i) => i.productId);
@@ -317,6 +351,55 @@ export const createOrder = async (req, res) => {
   } catch (err) {
     console.error("Order creation failed:", err);
     res.status(400).json({ message: "Order creation failed", error: err.message });
+  }
+};
+
+// POST /api/orders/reserve - reserve the authenticated user's current cart for checkout
+export const reserveCheckoutInventory = async (req, res) => {
+  try {
+    await releaseExpiredReservations();
+    const cart = await prisma.cart.findUnique({ where: { userId: req.userId }, include: { items: true } });
+
+    if (!cart?.items.length) return res.status(400).json({ message: "Your cart is empty." });
+
+    const items = cart.items.map(({ productId, quantity }) => ({ productId, quantity }));
+    
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const result = await prisma.$transaction(async (tx) => {
+      // Serialize checkout reservation creation per user (including React StrictMode
+      // double requests) so one user's cart cannot reserve the same stock twice.
+      // Select a scalar value: pg_advisory_xact_lock returns PostgreSQL `void`,
+      // which Prisma cannot deserialize as a query result.
+      await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${req.userId}))`;
+      const existing = await tx.stockReservation.findFirst({
+        where: { userId: req.userId, expiresAt: { gt: new Date() }, releasedAt: null, finalizedAt: null },
+        include: { items: true },
+        orderBy: { createdAt: "desc" },
+      });
+      const cartMatchesReservation = existing && JSON.stringify(existing.items.map(({ productId, quantity }) => [productId, quantity]).sort()) === JSON.stringify(items.map(({ productId, quantity }) => [productId, quantity]).sort());
+      if (cartMatchesReservation) return { reservation: existing, reused: true };
+
+      if (existing) {
+        const released = await tx.stockReservation.updateMany({
+          where: { id: existing.id, releasedAt: null, finalizedAt: null },
+          data: { releasedAt: new Date() },
+        });
+        if (released.count !== 1) throw createHttpError(409, "Checkout inventory is already being updated. Refresh checkout.");
+        if (released.count === 1) {
+          for (const item of existing.items) {
+            await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } });
+          }
+        }
+      }
+      await reserveInventory(tx, items);
+      const reservation = await tx.stockReservation.create({
+        data: { userId: req.userId, expiresAt, items: { create: items } },
+      });
+      return { reservation, reused: false };
+    });
+    res.status(result.reused ? 200 : 201).json({ reservationId: result.reservation.id, expiresAt: result.reservation.expiresAt });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({ message: "Unable to reserve checkout inventory", error: err.message });
   }
 };
 

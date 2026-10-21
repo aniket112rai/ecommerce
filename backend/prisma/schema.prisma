@@ -23,6 +23,7 @@ model User {
   cart      Cart?
   wishlist  Wishlist[]
   addresses Address[]
+  stockReservations StockReservation[]
 }
 
 model Category {
@@ -43,6 +44,7 @@ model Product {
 
   cartItems  CartItem[]
   orderItems OrderItem[]
+  reservationItems ReservationItem[]
   wishLists  Wishlist[]
   reviews    Review[]
   rating     Float?      @default(0)
@@ -79,6 +81,8 @@ model Order {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   payment   Payment?
+  reservationId String? @unique
+  reservation StockReservation? @relation(fields: [reservationId], references: [id])
 }
 
 model OrderItem {
@@ -139,4 +143,32 @@ model Payment {
   razorpayRefundId  String?
   refundStatus      String?
   createdAt         DateTime @default(now())
+}
+
+model RazorpayWebhookEvent {
+  eventId     String   @id
+  event       String
+  receivedAt  DateTime @default(now())
+}
+
+model StockReservation {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       ReservationItem[]
+  order       Order?
+  expiresAt   DateTime
+  finalizedAt DateTime?
+  releasedAt  DateTime?
+  createdAt   DateTime @default(now())
+  @@index([expiresAt, releasedAt])
+}
+
+model ReservationItem {
+  id            String           @id @default(cuid())
+  reservationId String
+  reservation   StockReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity      Int
 }

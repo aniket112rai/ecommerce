@@ -35,7 +35,18 @@ export const verifyRazorpaySignature = ({
     .update(body)
     .digest("hex");
 
-  return expectedSignature === razorpaySignature;
+  const supplied = Buffer.from(String(razorpaySignature || ""), "hex");
+  const expected = Buffer.from(expectedSignature, "hex");
+  return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+};
+
+export const verifyRazorpayWebhookSignature = (rawBody, signature) => {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!secret || !Buffer.isBuffer(rawBody) || !signature) return false;
+  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest();
+  let supplied;
+  try { supplied = Buffer.from(signature, "hex"); } catch { return false; }
+  return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
 };
 
 export const refundRazorpayPayment = async ({ paymentId, amount }) => {

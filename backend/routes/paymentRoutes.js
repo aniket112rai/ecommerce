@@ -5,9 +5,12 @@ import {
   getPayment,
   processPayment,
   verifyRazorpayPayment,
+  handleRazorpayWebhook,
 } from "../controllers/paymentController.js";
 
 const router = express.Router();
+
+router.post("/webhook", handleRazorpayWebhook);
 
 router.post("/razorpay/order", authMiddleware(), createRazorpayOrder);
 router.post("/razorpay/verify", authMiddleware(), verifyRazorpayPayment);

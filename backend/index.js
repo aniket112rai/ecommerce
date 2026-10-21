@@ -12,6 +12,7 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js"; 
 import paymentRoutes from "./routes/paymentRoutes.js"; 
 import cors from 'cors';
+import { releaseExpiredReservations } from "./utils/inventoryReservations.js";
 
 dotenv.config();
 const app = express();
@@ -19,7 +20,13 @@ app.use(cors({
     origin: "http://localhost:5173",
     credentials: true,
   }));
-app.use(express.json());
+app.use(express.json({
+  verify: (req, _res, buffer) => {
+    if (req.originalUrl.split("?")[0] === "/api/payments/webhook") {
+      req.rawBody = Buffer.from(buffer);
+    }
+  },
+}));
 app.use(cookieParser());
 
 
@@ -34,5 +41,9 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/addresses", addressRoutes); 
 app.use("/api/payments", paymentRoutes);
 
+
+setInterval(() => {
+  releaseExpiredReservations().catch((err) => console.error("Reservation expiry sweep failed:", err));
+}, 30_000);
 
 app.listen(3000);

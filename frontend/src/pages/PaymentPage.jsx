@@ -1,5 +1,5 @@
 // frontend/src/pages/PaymentPage.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext";
@@ -22,14 +22,28 @@ const PaymentPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { cartItems, selectedAddress, paymentMethod: checkoutMethod } =
+  const { cartItems, selectedAddress, paymentMethod: checkoutMethod, reservationId: checkoutReservationId, reservationExpiresAt: checkoutReservationExpiresAt } =
     location.state || {};
 
   const [paymentMethod, setPaymentMethod] = useState(checkoutMethod || "COD");
   const [loading, setLoading] = useState(false);
   const [payment, setPayment] = useState(null);
   const [order, setOrder] = useState(null);
+  const [reservationExpiresAt, setReservationExpiresAt] = useState(checkoutReservationExpiresAt || null);
+  const [remainingSeconds, setRemainingSeconds] = useState(checkoutReservationExpiresAt ? Math.max(0, Math.ceil((new Date(checkoutReservationExpiresAt).getTime() - Date.now()) / 1000)) : null);
   const { fetchCart } = useCart();
+
+  useEffect(() => {
+    if (!reservationExpiresAt) return undefined;
+    const updateCountdown = () => {
+      const seconds = Math.max(0, Math.ceil((new Date(reservationExpiresAt).getTime() - Date.now()) / 1000));
+      setRemainingSeconds(seconds);
+      if (seconds === 0) setPayment(null);
+    };
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [reservationExpiresAt]);
 
   const createOrderPayload = () => ({
     items: cartItems.map((item) => ({
@@ -38,6 +52,7 @@ const PaymentPage = () => {
     })),
     addressId: selectedAddress,
     paymentMethod,
+    reservationId: checkoutReservationId,
   });
 
   const handleCodOrder = async () => {
@@ -68,6 +83,8 @@ const PaymentPage = () => {
       createOrderPayload(),
       { withCredentials: true }
     );
+    setOrder(data.order);
+    setReservationExpiresAt(data.reservationExpiresAt);
 
     const options = {
       key: data.key,
@@ -88,11 +105,12 @@ const PaymentPage = () => {
           );
 
           const confirmedOrder = verifyRes.data;
+          setReservationExpiresAt(null);
           setOrder(confirmedOrder);
           setPayment({
             id: response.razorpay_payment_id,
             method: paymentMethod,
-            status: confirmedOrder.payment?.status || "Paid",
+            status: confirmedOrder.payment?.status || "Payment processing",
           });
           fetchCart();
         } catch (err) {
@@ -162,6 +180,13 @@ const PaymentPage = () => {
         {!payment ? (
           /* ------------------ PAYMENT FORM ------------------ */
           <div className="bg-white py-8 px-6 shadow-xl rounded-3xl sm:px-10 border border-gray-100">
+            {reservationExpiresAt && remainingSeconds !== null && (
+              <div className="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-800" role="timer">
+                {remainingSeconds > 0
+                  ? `Stock reserved for ${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, "0")}`
+                  : "Your reservation expired. Please start checkout again."}
+              </div>
+            )}
             <div className="text-center mb-8">
               <div className="mx-auto h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center text-2xl mb-4">
                 🔒
@@ -203,14 +228,16 @@ const PaymentPage = () => {
 
               <button
                 onClick={handlePayment}
-                disabled={loading}
+                disabled={loading || (reservationExpiresAt && remainingSeconds === 0)}
                 className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white transition-all ${
                   loading 
                     ? "bg-indigo-400 cursor-wait" 
                     : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-95"
                 }`}
               >
-                {loading ? (
+                {remainingSeconds === 0 && reservationExpiresAt ? (
+                  "Reservation expired"
+                ) : loading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Processing...
